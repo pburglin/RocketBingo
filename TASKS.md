@@ -15,10 +15,10 @@
     - [x] Write unit tests with mock boards to confirm win detection.
 
 ## Phase 3: Real-Time Server (Socket.io)
-- [ ] Setup Express server with Socket.io instance.
-- [ ] Implement `create_room` event (generates Room ID).
-- [ ] Implement `join_room` event (adds player to session state).
-- [ ] Implement `game_state` broadcast (syncs started/stopped status).
+- [x] Setup Express server with Socket.io instance.
+- [x] Implement `create_room` event (generates Room ID).
+- [x] Implement `join_room` event (adds player to session state).
+- [x] Implement `game_state` broadcast (syncs started/stopped status).
 
 ## Phase 4: Frontend UI
 - [ ] **Landing Page:** Create "Host Game" vs "Join Game" toggle.
