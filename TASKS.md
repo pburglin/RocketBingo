@@ -1,18 +1,18 @@
 # Project Tasks — Rocket Bingo
 
 ## Phase 1: Project Initialization & Agentic Setup
-- [ ] Initialize Node.js project (`npm init -y`) and install dependencies (Express, Socket.io, React/Vite).
-- [ ] Configure `agent/validate.sh` script to run linting and tests in one go.
-- [ ] Create basic directory structure (`/server`, `/client`, `/shared`).
-- [ ] Setup Vitest (backend) and React Testing Library (frontend).
+- [x] Initialize Node.js project (`npm init -y`) and install dependencies (Express, Socket.io, React/Vite).
+- [x] Configure `agent/validate.sh` script to run linting and tests in one go.
+- [x] Create basic directory structure (`/server`, `/client`, `/shared`).
+- [x] Setup Vitest (backend) and React Testing Library (frontend).
 
 ## Phase 2: Core Game Logic (TDD Approach)
-- [ ] **Feature:** Board Generation
-    - [ ] Create `generateBoard(type)` function (Classic 1-75 vs. Business Buzzwords).
-    - [ ] Write unit tests to verify board has unique items and correct dimensions (5x5).
-- [ ] **Feature:** Win Condition Checking
-    - [ ] Create logic to check rows, columns, and diagonals.
-    - [ ] Write unit tests with mock boards to confirm win detection.
+- [x] **Feature:** Board Generation
+    - [x] Create `generateBoard(type)` function (Classic 1-75 vs. Business Buzzwords).
+    - [x] Write unit tests to verify board has unique items and correct dimensions (5x5).
+- [x] **Feature:** Win Condition Checking
+    - [x] Create logic to check rows, columns, and diagonals.
+    - [x] Write unit tests with mock boards to confirm win detection.
 
 ## Phase 3: Real-Time Server (Socket.io)
 - [ ] Setup Express server with Socket.io instance.

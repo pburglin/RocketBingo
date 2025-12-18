@@ -7,17 +7,15 @@ echo "🤖 AGENT VERIFICATION PROTOCOL INITIATED..."
 
 # 1. Linting Check (Fail fast on syntax errors)
 echo "--- 1. Checking Syntax & Linting ---"
-# Assuming eslint is set up
-npm run lint --if-present
+npm run lint
 
 # 2. Type Checking (TypeScript)
 echo "--- 2. Checking Types ---"
-npm run tsc --noEmit --if-present
+npx tsc --noEmit
 
 # 3. Unit Tests (Logic verification)
 echo "--- 3. Running Unit Tests ---"
-# We expect the agent to use Vitest or Jest
-npm run test:unit
+npm run test:run
 
 # 4. Integration/Build Check (Ensure it actually builds)
 echo "--- 4. Verifying Build ---"
