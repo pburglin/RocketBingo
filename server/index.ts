@@ -20,6 +20,9 @@ const rooms = new Map<string, Room>();
 // Track marked cells for each player
 const playerMarkedCells = new Map<string, Map<string, Set<number>>>(); // roomId -> (playerId -> Set<cellIndex>)
 
+// Track generated numbers for built-in number generator
+const generatedNumbers = new Map<string, number[]>(); // roomId -> array of generated numbers
+
 // Utility function to get or create room
 const getRoom = (roomId: string): Room | undefined => {
   return rooms.get(roomId);
@@ -40,9 +43,13 @@ io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
   // Handle room creation
-  socket.on('create_room', (data: { playerName: string; gameMode?: 'CLASSIC' | 'BUSINESS' }) => {
+  socket.on('create_room', (data: { playerName: string; gameMode?: 'CLASSIC' | 'BUSINESS'; numberGenerator?: 'EXTERNAL' | 'BUILTIN' }) => {
+    console.log('🏠 Server received create_room request:', data);
+    console.log('🔌 Socket ID:', socket.id);
+    
     try {
-      const { playerName, gameMode = 'CLASSIC' } = data;
+      const { playerName, gameMode = 'CLASSIC', numberGenerator = 'EXTERNAL' } = data;
+      console.log('📊 Parsed data:', { playerName, gameMode, numberGenerator });
       
       if (!playerName || typeof playerName !== 'string' || playerName.trim().length === 0) {
         socket.emit('error', { message: 'Player name is required' });
@@ -70,6 +77,7 @@ io.on('connection', (socket) => {
         players: [hostPlayer],
         gameState: 'waiting',
         gameMode: gameMode,
+        numberGenerator: numberGenerator,
         createdAt: new Date()
       };
 
@@ -312,6 +320,138 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Error calling bingo:', error);
       socket.emit('error', { message: 'Failed to call bingo' });
+    }
+  });
+
+  // Handle getting next number for built-in number generator
+  socket.on('get_next_number', (data: { roomId: string }) => {
+    try {
+      const { roomId } = data;
+      const room = getRoom(roomId);
+
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+
+      // Only host can generate numbers
+      if (socket.id !== room.hostId) {
+        socket.emit('error', { message: 'Only the host can generate numbers' });
+        return;
+      }
+
+      if (room.gameState !== 'started') {
+        socket.emit('error', { message: 'Game not in progress' });
+        return;
+      }
+
+      if (room.numberGenerator !== 'BUILTIN') {
+        socket.emit('error', { message: 'This room is not using built-in number generator' });
+        return;
+      }
+
+      // Generate a new number (1-75 for classic, random business terms for business)
+      let newNumber: string;
+      if (room.gameMode === 'CLASSIC') {
+        // Generate number 1-75
+        const availableNumbers = [];
+        for (let i = 1; i <= 75; i++) {
+          if (!generatedNumbers.get(roomId)?.includes(i)) {
+            availableNumbers.push(i);
+          }
+        }
+        
+        if (availableNumbers.length === 0) {
+          socket.emit('error', { message: 'All numbers have been generated' });
+          return;
+        }
+        
+        const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+        newNumber = availableNumbers[randomIndex].toString();
+      } else {
+        // Business mode - get random business term
+        const businessTerms = [
+          'Synergy', 'Disruption', 'Leverage', 'Scalability', 'Optimization',
+          'Pivot', 'Innovation', 'Agility', 'Velocity', 'Framework',
+          'Cloud-based', 'Analytics', 'Blockchain', 'AI-driven', 'Machine Learning',
+          'SaaS', 'API', 'DevOps', 'Scrum', 'Kanban', 'ROI', 'KPIs', 'OKRs',
+          'Stakeholder', 'Alignment', 'Roadmap', 'Milestone', 'Deliverable',
+          'Scalable', 'Robust', 'Enterprise', 'Solution', 'Integration',
+          'Workflow', 'Pipeline', 'Infrastructure', 'Architecture', 'Protocol'
+        ];
+        
+        const availableTerms = businessTerms.filter(term => 
+          !generatedNumbers.get(roomId)?.includes(businessTerms.indexOf(term))
+        );
+        
+        if (availableTerms.length === 0) {
+          socket.emit('error', { message: 'All business terms have been generated' });
+          return;
+        }
+        
+        newNumber = availableTerms[Math.floor(Math.random() * availableTerms.length)];
+      }
+
+      // Store generated number
+      if (!generatedNumbers.has(roomId)) {
+        generatedNumbers.set(roomId, []);
+      }
+      const roomNumbers = generatedNumbers.get(roomId)!;
+      if (room.gameMode === 'CLASSIC') {
+        roomNumbers.push(parseInt(newNumber));
+      } else {
+        roomNumbers.push(newNumber);
+      }
+
+      // Broadcast number to all players
+      io.to(roomId).emit('number_generated', {
+        number: newNumber,
+        timestamp: new Date()
+      });
+
+      console.log(`Number generated in room ${roomId}: ${newNumber}`);
+    } catch (error) {
+      console.error('Error generating number:', error);
+      socket.emit('error', { message: 'Failed to generate number' });
+    }
+  });
+
+  // Handle challenge bingo call
+  socket.on('challenge_bingo', (data: { roomId: string; playerId: string }) => {
+    try {
+      const { roomId, playerId } = data;
+      const room = getRoom(roomId);
+
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+
+      // Only host can challenge
+      if (socket.id !== room.hostId) {
+        socket.emit('error', { message: 'Only the host can challenge bingo calls' });
+        return;
+      }
+
+      // Find the challenged player
+      const challengedPlayer = room.players.find(p => p.socketId === playerId);
+      if (!challengedPlayer) {
+        socket.emit('error', { message: 'Player not found in room' });
+        return;
+      }
+
+      // Broadcast challenge result
+      io.to(roomId).emit('bingo_challenged', {
+        playerId,
+        playerName: challengedPlayer.name,
+        reason: 'Bingo call challenged by host',
+        timestamp: new Date()
+      });
+
+      console.log(`Bingo challenged by host in room ${roomId}: ${challengedPlayer.name}`);
+    } catch (error) {
+      console.error('Error challenging bingo:', error);
+      socket.emit('error', { message: 'Failed to challenge bingo' });
     }
   });
 

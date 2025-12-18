@@ -4,19 +4,20 @@ import React, { useState } from 'react';
 interface HostModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (playerName: string) => void;
+  onSubmit: (playerName: string, gameMode: 'CLASSIC' | 'BUSINESS', numberGenerator: 'EXTERNAL' | 'BUILTIN') => void;
 }
 
 const HostModal: React.FC<HostModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [playerName, setPlayerName] = useState('');
   const [gameMode, setGameMode] = useState<'CLASSIC' | 'BUSINESS'>('CLASSIC');
+  const [numberGenerator, setNumberGenerator] = useState<'EXTERNAL' | 'BUILTIN'>('EXTERNAL');
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (playerName.trim()) {
-      onSubmit(playerName.trim());
+      onSubmit(playerName.trim(), gameMode, numberGenerator);
       setPlayerName('');
       onClose();
     }
@@ -89,6 +90,30 @@ const HostModal: React.FC<HostModalProps> = ({ isOpen, onClose, onSubmit }) => {
             </select>
           </div>
 
+          <div>
+            <label className="block text-white text-sm font-bold mb-2">
+              Number Generator
+            </label>
+            <select
+              value={numberGenerator}
+              onChange={(e) => setNumberGenerator(e.target.value as 'EXTERNAL' | 'BUILTIN')}
+              className="w-full p-3 rounded-lg bg-white/20 text-white border-2 border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+            >
+              <option value="EXTERNAL" className="bg-purple-800 text-white">
+                🌐 External Number Source
+              </option>
+              <option value="BUILTIN" className="bg-purple-800 text-white">
+                🎲 Built-in Number Generator
+              </option>
+            </select>
+            <p className="text-purple-200 text-xs mt-1">
+              {numberGenerator === 'EXTERNAL' 
+                ? 'Use external API or manual input for numbers'
+                : 'Generate numbers automatically during gameplay'
+              }
+            </p>
+          </div>
+
           {/* Actions */}
           <div className="flex space-x-3 pt-4">
             <button
@@ -116,6 +141,12 @@ const HostModal: React.FC<HostModalProps> = ({ isOpen, onClose, onSubmit }) => {
         <div className="mt-4 text-center">
           <p className="text-purple-200 text-sm">
             As the host, you'll be able to start the game and control the lobby
+            {numberGenerator === 'BUILTIN' && (
+              <>
+                <br />
+                With built-in generator, you can click "Get Next Number" during gameplay
+              </>
+            )}
           </p>
         </div>
       </div>

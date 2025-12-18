@@ -16,6 +16,10 @@ const Game: React.FC<GameProps> = ({ room, playerName, onBackToLobby }) => {
   const [hasWon, setHasWon] = useState(false);
   const [bingoValidation, setBingoValidation] = useState<any>(null);
   const [showValidation, setShowValidation] = useState(false);
+  const [generatedNumber, setGeneratedNumber] = useState<any>(null);
+  const [showNumberDialog, setShowNumberDialog] = useState(false);
+  const [bingoCardToShow, setBingoCardToShow] = useState<any>(null);
+  const [showBingoCard, setShowBingoCard] = useState(false);
 
   // Track marked cells for all players
   const [allPlayersMarkedCells, setAllPlayersMarkedCells] = useState<Record<string, Set<number>>>({});
@@ -47,11 +51,15 @@ const Game: React.FC<GameProps> = ({ room, playerName, onBackToLobby }) => {
     socketService.onGameStateUpdate(handleGameStateUpdate);
     socketService.onBingoCalled(handleBingoCalled);
     socketService.onBingoValidation(handleBingoValidation);
+    socketService.onNumberGenerated(handleNumberGenerated);
+    socketService.onBingoChallenged(handleBingoChallenged);
 
     return () => {
       socketService.offGameStateUpdate(handleGameStateUpdate);
       socketService.offBingoCalled(handleBingoCalled);
       socketService.offBingoValidation(handleBingoValidation);
+      socketService.offNumberGenerated(handleNumberGenerated);
+      socketService.offBingoChallenged(handleBingoChallenged);
     };
   }, []);
 
@@ -127,20 +135,95 @@ const Game: React.FC<GameProps> = ({ room, playerName, onBackToLobby }) => {
     socketService.callBingo({ roomId: room.id, markedCells: Array.from(markedCells) });
   };
 
+  // Handle getting next number (host only)
+  const handleGetNextNumber = () => {
+    socketService.getNextNumber({ roomId: room.id });
+  };
+
+  // Handle number generated event
+  const handleNumberGenerated = (data: any) => {
+    setGeneratedNumber(data);
+    setShowNumberDialog(true);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setShowNumberDialog(false);
+      setGeneratedNumber(null);
+    }, 5000);
+  };
+
+  // Close number dialog
+  const closeNumberDialog = () => {
+    setShowNumberDialog(false);
+    setGeneratedNumber(null);
+  };
+
+  // Handle challenge bingo call
+  const handleChallengeBingo = () => {
+    if (bingoValidation && room.hostId === socketService.getSocket()?.id) {
+      // Send challenge to server
+      socketService.challengeBingo({
+        roomId: room.id,
+        playerId: bingoValidation.playerId
+      });
+      
+      // Close validation dialog
+      closeValidation();
+      
+      // Show challenge confirmation
+      alert(`${bingoValidation.playerName}'s bingo has been challenged and rejected. Game continues!`);
+    }
+  };
+
+  // Close bingo card display
+  const closeBingoCard = () => {
+    setShowBingoCard(false);
+    setBingoCardToShow(null);
+  };
+
+  // Handle bingo challenged event
+  const handleBingoChallenged = (data: any) => {
+    // Reset any win state
+    setHasWon(false);
+    
+    // Show challenge notification
+    alert(`⚠️ ${data.playerName}'s bingo has been CHALLENGED and rejected! Game continues.`);
+    
+    // Close any open dialogs
+    setShowValidation(false);
+    setShowBingoCard(false);
+    setBingoValidation(null);
+    setBingoCardToShow(null);
+  };
+
   // Handle bingo validation response
   const handleBingoValidation = (data: any) => {
     setBingoValidation(data);
     setShowValidation(true);
     
-    // Auto-hide validation after 5 seconds
-    setTimeout(() => {
-      setShowValidation(false);
-      setBingoValidation(null);
-    }, 5000);
+    // Auto-hide validation after 5 seconds only if valid
+    if (data.isValid) {
+      setTimeout(() => {
+        setShowValidation(false);
+        setBingoValidation(null);
+      }, 5000);
+    }
     
     // If this player won, set hasWon
     if (data.isValid && data.playerId === socketService.getSocket()?.id) {
       setHasWon(true);
+    }
+    
+    // Show the bingo card for validation (especially for hosts)
+    if (data.playerId !== socketService.getSocket()?.id) {
+      // TODO: Get the called player's board from server
+      // For now, show a placeholder
+      setBingoCardToShow({
+        playerName: data.playerName,
+        markedCells: data.markedCells,
+        gameMode: room.gameMode
+      });
+      setShowBingoCard(true);
     }
   };
 
@@ -176,13 +259,27 @@ const Game: React.FC<GameProps> = ({ room, playerName, onBackToLobby }) => {
           <div className="text-white">
             <h2 className="text-xl font-bold float-animation">🚀 Rocket Bingo</h2>
             <p className="text-purple-200 text-sm">Room: {room.id}</p>
+            <p className="text-purple-200 text-xs">
+              {room.numberGenerator === 'BUILTIN' ? '🎲 Built-in Generator' : '🌐 External Generator'}
+            </p>
           </div>
-          <button
-            onClick={onBackToLobby}
-            className="text-purple-200 hover:text-white transition-colors"
-          >
-            ← Back to Lobby
-          </button>
+          <div className="flex items-center space-x-3">
+            {room.numberGenerator === 'BUILTIN' && room.hostId === socketService.getSocket()?.id && (
+              <button
+                onClick={handleGetNextNumber}
+                disabled={room.gameState !== 'started'}
+                className="rocket-button bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all transform hover:scale-105"
+              >
+                🎯 Get Next Number
+              </button>
+            )}
+            <button
+              onClick={onBackToLobby}
+              className="text-purple-200 hover:text-white transition-colors"
+            >
+              ← Back to Lobby
+            </button>
+          </div>
         </div>
       </div>
 
@@ -336,13 +433,125 @@ const Game: React.FC<GameProps> = ({ room, playerName, onBackToLobby }) => {
                 </div>
               )}
               
+              <div className="flex space-x-3">
+                <button
+                  onClick={closeValidation}
+                  className="rocket-button bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-6 rounded-lg transition-colors flex-1"
+                >
+                  Continue Playing
+                </button>
+                {room.hostId === socketService.getSocket()?.id && bingoValidation.isValid && (
+                  <button
+                    onClick={handleChallengeBingo}
+                    className="rocket-button bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition-colors flex-1"
+                  >
+                    ⚠️ Challenge
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Number Generated Dialog */}
+      {showNumberDialog && generatedNumber && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeNumberDialog}
+          />
+          
+          {/* Number Dialog */}
+          <div className="relative max-w-sm w-full mx-4 glass-card rounded-xl p-6 shadow-2xl border-2 border-blue-400 animate-pulse">
+            {/* Header */}
+            <div className="text-center mb-4">
+              <h3 className="text-2xl font-bold text-blue-400 mb-2">
+                🎯 New Number Generated!
+              </h3>
+            </div>
+            
+            {/* Number Display */}
+            <div className="text-center mb-6">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-4xl font-bold py-6 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all">
+                {generatedNumber.number}
+              </div>
+              <p className="text-purple-200 text-sm mt-2">
+                Mark this on your board if you have it!
+              </p>
+            </div>
+            
+            <button
+              onClick={closeNumberDialog}
+              className="rocket-button bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition-colors w-full"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Bingo Card Display Dialog */}
+      {showBingoCard && bingoCardToShow && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeBingoCard}
+          />
+          
+          {/* Bingo Card Dialog */}
+          <div className="relative max-w-lg w-full mx-4 glass-card rounded-xl p-6 shadow-2xl border-2 border-yellow-400">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold text-yellow-400">
+                🎯 {bingoCardToShow.playerName}'s Board
+              </h3>
               <button
-                onClick={closeValidation}
-                className="rocket-button bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+                onClick={closeBingoCard}
+                className="text-purple-200 hover:text-white transition-colors text-2xl"
               >
-                Continue Playing
+                ×
               </button>
             </div>
+            
+            {/* Board Display */}
+            <div className="bg-white/10 rounded-lg p-4 mb-4">
+              <div className="grid grid-cols-5 gap-1">
+                {Array.from({ length: 25 }, (_, index) => {
+                  const isMarked = bingoCardToShow.markedCells?.includes(index) || index === 12;
+                  const cellContent = index === 12 ? 'FREE' : `Cell ${index + 1}`;
+                  
+                  return (
+                    <div
+                      key={index}
+                      className={`aspect-square flex items-center justify-center text-xs font-bold rounded transition-all ${
+                        isMarked
+                          ? 'bg-green-500 text-white'
+                          : 'bg-white/20 text-white'
+                      }`}
+                    >
+                      {cellContent}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Info */}
+            <div className="text-center mb-4">
+              <p className="text-purple-200 text-sm">
+                Marked cells shown in green. This is the board that called BINGO.
+              </p>
+            </div>
+            
+            <button
+              onClick={closeBingoCard}
+              className="rocket-button bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-lg transition-colors w-full"
+            >
+              Got it!
+            </button>
           </div>
         </div>
       )}

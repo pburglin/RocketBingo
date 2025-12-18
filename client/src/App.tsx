@@ -5,6 +5,7 @@ import Lobby from './components/Lobby';
 import Game from './components/Game';
 import JoinGame from './components/JoinGame';
 import HostModal from './components/HostModal';
+import WebGLBackground from './components/WebGLBackground';
 import socketService from './services/socket';
 
 type AppState = 'landing' | 'host' | 'lobby' | 'game' | 'join';
@@ -34,17 +35,24 @@ const App: React.FC = () => {
   }, []);
 
   // Handle room creation
-  const handleCreateRoom = (name: string) => {
+  const handleCreateRoom = (name: string, gameMode: 'CLASSIC' | 'BUSINESS', numberGenerator: 'EXTERNAL' | 'BUILTIN') => {
+    console.log('🚀 handleCreateRoom called with:', { name, gameMode, numberGenerator });
+    
     setPlayerName(name);
     setIsHost(true);
     setError('');
     
+    console.log('📡 Setting up room created listener...');
     socketService.onRoomCreated((data) => {
+      console.log('✅ Room created event received:', data);
       setCurrentRoom(data.room);
       setAppState('lobby');
     });
     
-    socketService.createRoom({ playerName: name, gameMode });
+    console.log('📤 Calling socketService.createRoom...');
+    socketService.createRoom({ playerName: name, gameMode, numberGenerator });
+    
+    console.log('🚪 Closing host modal...');
     setIsHostModalOpen(false);
   };
 
@@ -121,8 +129,9 @@ const App: React.FC = () => {
   if (appState === 'landing') {
     return (
       <>
-        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900 gradient-animation">
-          <div className="container mx-auto px-4 py-8">
+        <WebGLBackground intensity="high" />
+        <div className="relative min-h-screen bg-gradient-to-br from-purple-900/80 via-purple-800/80 to-orange-900/80 gradient-animation">
+          <div className="relative z-10 container mx-auto px-4 py-8">
             <header className="text-center mb-8">
               <h1 className="text-5xl font-bold text-white mb-4 float-animation">
                 🚀 Rocket Bingo
@@ -152,22 +161,6 @@ const App: React.FC = () => {
                   🎮 Join Game
                 </button>
               </div>
-
-              <div className="mt-6">
-                <label className="block text-white text-sm font-bold mb-2">
-                  Game Mode
-                </label>
-                <select
-                  value={gameMode}
-                  onChange={(e) => setGameMode(e.target.value as GameMode)}
-                  className={`w-full p-2 rounded bg-white/20 text-white border-2 ${
-                    gameMode === 'BUSINESS' ? 'business-mode-glow border-blue-400' : 'classic-mode-glow border-orange-400'
-                  }`}
-                >
-                  <option value="CLASSIC">🎲 Classic Bingo (Numbers 1-75)</option>
-                  <option value="BUSINESS">💼 Business Buzzwords (Corporate Jargon)</option>
-                </select>
-              </div>
             </div>
           </div>
         </div>
@@ -184,83 +177,95 @@ const App: React.FC = () => {
   // Render join game page
   if (appState === 'join') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900">
-        <div className="container mx-auto px-4 py-8">
-          <header className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-white mb-4">
-              🚀 Rocket Bingo
-            </h1>
-            <p className="text-xl text-purple-200">
-              Join an existing game!
-            </p>
-          </header>
+      <>
+        <WebGLBackground intensity="medium" />
+        <div className="relative min-h-screen bg-gradient-to-br from-purple-900/80 via-purple-800/80 to-orange-900/80">
+          <div className="relative z-10 container mx-auto px-4 py-8">
+            <header className="text-center mb-8">
+              <h1 className="text-5xl font-bold text-white mb-4">
+                🚀 Rocket Bingo
+              </h1>
+              <p className="text-xl text-purple-200">
+                Join an existing game!
+              </p>
+            </header>
 
-          <JoinGame
-            onJoinRoom={handleJoinRoom}
-            onBack={handleBackToLanding}
-            error={error}
-          />
+            <JoinGame
+              onJoinRoom={handleJoinRoom}
+              onBack={handleBackToLanding}
+              error={error}
+            />
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Render lobby
   if (appState === 'lobby' && currentRoom) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900">
-        <div className="container mx-auto px-4 py-8">
-          <header className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-white mb-4">
-              🚀 Rocket Bingo
-            </h1>
-            <p className="text-xl text-purple-200">
-              Waiting for players to join...
-            </p>
-          </header>
+      <>
+        <WebGLBackground intensity="medium" />
+        <div className="relative min-h-screen bg-gradient-to-br from-purple-900/80 via-purple-800/80 to-orange-900/80">
+          <div className="relative z-10 container mx-auto px-4 py-8">
+            <header className="text-center mb-8">
+              <h1 className="text-5xl font-bold text-white mb-4">
+                🚀 Rocket Bingo
+              </h1>
+              <p className="text-xl text-purple-200">
+                Waiting for players to join...
+              </p>
+            </header>
 
-          <Lobby
-            room={currentRoom}
-            isHost={isHost}
-            onStartGame={handleStartGame}
-            onBack={handleBackToLanding}
-          />
+            <Lobby
+              room={currentRoom}
+              isHost={isHost}
+              onStartGame={handleStartGame}
+              onBack={handleBackToLanding}
+            />
 
-          {error && (
-            <div className="max-w-md mx-auto mt-4">
-              <div className="bg-red-500/20 border border-red-500 rounded-lg p-3">
-                <p className="text-red-200 text-sm">{error}</p>
+            {error && (
+              <div className="max-w-md mx-auto mt-4">
+                <div className="bg-red-500/20 border border-red-500 rounded-lg p-3">
+                  <p className="text-red-200 text-sm">{error}</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Render game
   if (appState === 'game' && currentRoom) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900">
-        <div className="container mx-auto px-4 py-8">
-          <Game
-            room={currentRoom}
-            playerName={playerName}
-            onBackToLobby={handleBackToLobby}
-          />
+      <>
+        <WebGLBackground intensity="low" />
+        <div className="relative min-h-screen bg-gradient-to-br from-purple-900/80 via-purple-800/80 to-orange-900/80">
+          <div className="relative z-10 container mx-auto px-4 py-8">
+            <Game
+              room={currentRoom}
+              playerName={playerName}
+              onBackToLobby={handleBackToLobby}
+            />
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Loading state
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900 gradient-animation flex items-center justify-center">
-      <div className="text-center text-white">
-        <div className="rocket-spinner mx-auto mb-4"></div>
-        <p className="text-xl rocket-pulse">Loading...</p>
+    <>
+      <WebGLBackground intensity="high" />
+      <div className="relative min-h-screen bg-gradient-to-br from-purple-900/80 via-purple-800/80 to-orange-900/80 gradient-animation flex items-center justify-center">
+        <div className="relative z-10 text-center text-white">
+          <div className="rocket-spinner mx-auto mb-4"></div>
+          <p className="text-xl rocket-pulse">Loading...</p>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

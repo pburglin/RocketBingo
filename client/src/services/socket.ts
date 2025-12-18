@@ -9,6 +9,13 @@ import {
   CallBingoData 
 } from '../../../shared/types';
 
+// Type the createRoom method properly
+interface CreateRoomWithGenerator {
+  playerName: string;
+  gameMode?: 'CLASSIC' | 'BUSINESS';
+  numberGenerator?: 'EXTERNAL' | 'BUILTIN';
+}
+
 class SocketService {
   private socket: Socket | null = null;
   private isConnected = false;
@@ -59,9 +66,16 @@ class SocketService {
   }
 
   // Room management methods
-  createRoom(data: CreateRoomData): void {
+  createRoom(data: CreateRoomData & { numberGenerator?: 'EXTERNAL' | 'BUILTIN' }): void {
+    console.log('📞 SocketService.createRoom called with:', data);
+    console.log('🔌 Socket connected:', this.socket?.connected);
+    console.log('🆔 Socket ID:', this.socket?.id);
+    
     if (this.socket) {
+      console.log('📤 Emitting create_room event...');
       this.socket.emit('create_room', data);
+    } else {
+      console.error('❌ Socket is null/undefined!');
     }
   }
 
@@ -86,6 +100,18 @@ class SocketService {
   callBingo(data: CallBingoData): void {
     if (this.socket) {
       this.socket.emit('call_bingo', data);
+    }
+  }
+
+  getNextNumber(data: { roomId: string }): void {
+    if (this.socket) {
+      this.socket.emit('get_next_number', data);
+    }
+  }
+
+  challengeBingo(data: { roomId: string; playerId: string }): void {
+    if (this.socket) {
+      this.socket.emit('challenge_bingo', data);
     }
   }
 
@@ -116,6 +142,14 @@ class SocketService {
 
   onBingoValidation(callback: (data: { playerId: string; playerName: string; markedCells: number[]; isValid: boolean; winningLines: number[][] }) => void): void {
     this.socket?.on('bingo_validation', callback);
+  }
+
+  onNumberGenerated(callback: (data: { number: string; timestamp: Date }) => void): void {
+    this.socket?.on('number_generated', callback);
+  }
+
+  onBingoChallenged(callback: (data: { playerId: string; playerName: string; reason: string }) => void): void {
+    this.socket?.on('bingo_challenged', callback);
   }
 
   onError(callback: (data: { message: string }) => void): void {
@@ -149,6 +183,14 @@ class SocketService {
 
   offBingoValidation(callback?: (data: { playerId: string; playerName: string; markedCells: number[]; isValid: boolean; winningLines: number[][] }) => void): void {
     this.socket?.off('bingo_validation', callback);
+  }
+
+  offNumberGenerated(callback?: (data: { number: string; timestamp: Date }) => void): void {
+    this.socket?.off('number_generated', callback);
+  }
+
+  offBingoChallenged(callback?: (data: { playerId: string; playerName: string; reason: string }) => void): void {
+    this.socket?.off('bingo_challenged', callback);
   }
 
   offError(callback?: (data: { message: string }) => void): void {
