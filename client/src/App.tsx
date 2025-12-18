@@ -1,23 +1,133 @@
-import React, { useState } from 'react';
-import { GameMode } from '../../shared/types';
+// client/src/App.tsx
+import React, { useState, useEffect } from 'react';
+import { GameMode, Room } from '../../shared/types';
+import Lobby from './components/Lobby';
+import Game from './components/Game';
+import JoinGame from './components/JoinGame';
+import socketService from './services/socket';
+
+type AppState = 'landing' | 'host' | 'lobby' | 'game' | 'join';
 
 const App: React.FC = () => {
+  const [appState, setAppState] = useState<AppState>('landing');
   const [gameMode, setGameMode] = useState<GameMode>('CLASSIC');
-  const [isHost, setIsHost] = useState<boolean>(false);
+  const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
+  const [playerName, setPlayerName] = useState('');
+  const [isHost, setIsHost] = useState(false);
+  const [error, setError] = useState('');
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900">
-      <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-white mb-4">
-            🚀 Rocket Bingo
-          </h1>
-          <p className="text-xl text-purple-200">
-            Real-time multiplayer bingo with a rocket theme!
-          </p>
-        </header>
+  // Connect to socket on component mount
+  useEffect(() => {
+    socketService.connect();
+    
+    // Set up global error handler
+    socketService.onError((data) => {
+      setError(data.message);
+      setTimeout(() => setError(''), 5000);
+    });
 
-        {!isHost ? (
+    return () => {
+      socketService.disconnect();
+    };
+  }, []);
+
+  // Handle room creation
+  const handleCreateRoom = (name: string) => {
+    setPlayerName(name);
+    setIsHost(true);
+    setError('');
+    
+    socketService.onRoomCreated((data) => {
+      setCurrentRoom(data.room);
+      setAppState('lobby');
+    });
+    
+    socketService.createRoom({ playerName: name });
+  };
+
+  // Handle room joining
+  const handleJoinRoom = (roomId: string, name: string) => {
+    setPlayerName(name);
+    setIsHost(false);
+    setError('');
+    
+    socketService.onRoomJoined((data) => {
+      if (data.success) {
+        setCurrentRoom(data.room);
+        setAppState('lobby');
+      } else {
+        setError(data.message || 'Failed to join room');
+      }
+    });
+    
+    socketService.joinRoom({ roomId, playerName: name });
+  };
+
+  // Handle game start
+  const handleStartGame = () => {
+    if (currentRoom && isHost) {
+      socketService.onGameStarted((data) => {
+        setCurrentRoom(data.room);
+        setAppState('game');
+      });
+      
+      socketService.startGame({ roomId: currentRoom.id });
+    }
+  };
+
+  // Handle going back to lobby
+  const handleBackToLobby = () => {
+    setAppState('lobby');
+  };
+
+  // Handle going back to landing
+  const handleBackToLanding = () => {
+    setAppState('landing');
+    setCurrentRoom(null);
+    setPlayerName('');
+    setIsHost(false);
+    setError('');
+    socketService.disconnect();
+    socketService.connect();
+  };
+
+  // Listen for real-time updates
+  useEffect(() => {
+    if (currentRoom) {
+      socketService.onPlayerJoined((data) => {
+        setCurrentRoom(data.room);
+      });
+
+      socketService.onGameStateUpdate((data) => {
+        setCurrentRoom(data.room);
+      });
+    }
+  }, [currentRoom]);
+
+  // Check for room ID in URL on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get('room');
+    
+    if (roomFromUrl && appState === 'landing') {
+      setAppState('join');
+    }
+  }, [appState]);
+
+  // Render landing page
+  if (appState === 'landing') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900">
+        <div className="container mx-auto px-4 py-8">
+          <header className="text-center mb-8">
+            <h1 className="text-5xl font-bold text-white mb-4">
+              🚀 Rocket Bingo
+            </h1>
+            <p className="text-xl text-purple-200">
+              Real-time multiplayer bingo with a rocket theme!
+            </p>
+          </header>
+
           <div className="max-w-md mx-auto bg-white/10 backdrop-blur-md rounded-lg p-6">
             <h2 className="text-2xl font-bold text-white mb-6 text-center">
               Choose Your Role
@@ -25,14 +135,19 @@ const App: React.FC = () => {
             
             <div className="space-y-4">
               <button
-                onClick={() => setIsHost(true)}
+                onClick={() => {
+                  const name = prompt('Enter your name to host:') || '';
+                  if (name.trim()) {
+                    handleCreateRoom(name.trim());
+                  }
+                }}
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
               >
                 🚀 Host Game
               </button>
               
               <button
-                onClick={() => setIsHost(false)}
+                onClick={() => setAppState('join')}
                 className="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
               >
                 🎮 Join Game
@@ -53,36 +168,89 @@ const App: React.FC = () => {
               </select>
             </div>
           </div>
-        ) : (
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-white">
-                  Game Lobby
-                </h2>
-                <button
-                  onClick={() => setIsHost(false)}
-                  className="text-purple-200 hover:text-white"
-                >
-                  ← Back
-                </button>
-              </div>
-              
-              <div className="bg-white/20 rounded p-4 mb-4">
-                <p className="text-white">Room ID: <span className="font-mono">ROOM-123</span></p>
-                <p className="text-purple-200 text-sm">Share this with players to join</p>
-              </div>
-              
-              <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
-                Start Game
-              </button>
-            </div>
+        </div>
+      </div>
+    );
+  }
 
-            <div className="bg-white/10 backdrop-blur-md rounded-lg p-6">
-              <p className="text-white text-center">Game board will appear here when game starts</p>
+  // Render join game page
+  if (appState === 'join') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900">
+        <div className="container mx-auto px-4 py-8">
+          <header className="text-center mb-8">
+            <h1 className="text-5xl font-bold text-white mb-4">
+              🚀 Rocket Bingo
+            </h1>
+            <p className="text-xl text-purple-200">
+              Join an existing game!
+            </p>
+          </header>
+
+          <JoinGame
+            onJoinRoom={handleJoinRoom}
+            onBack={handleBackToLanding}
+            error={error}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Render lobby
+  if (appState === 'lobby' && currentRoom) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900">
+        <div className="container mx-auto px-4 py-8">
+          <header className="text-center mb-8">
+            <h1 className="text-5xl font-bold text-white mb-4">
+              🚀 Rocket Bingo
+            </h1>
+            <p className="text-xl text-purple-200">
+              Waiting for players to join...
+            </p>
+          </header>
+
+          <Lobby
+            room={currentRoom}
+            isHost={isHost}
+            onStartGame={handleStartGame}
+            onBack={handleBackToLanding}
+          />
+
+          {error && (
+            <div className="max-w-md mx-auto mt-4">
+              <div className="bg-red-500/20 border border-red-500 rounded-lg p-3">
+                <p className="text-red-200 text-sm">{error}</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Render game
+  if (appState === 'game' && currentRoom) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900">
+        <div className="container mx-auto px-4 py-8">
+          <Game
+            room={currentRoom}
+            playerName={playerName}
+            onBackToLobby={handleBackToLobby}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900 flex items-center justify-center">
+      <div className="text-center text-white">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mb-4"></div>
+        <p className="text-xl">Loading...</p>
       </div>
     </div>
   );

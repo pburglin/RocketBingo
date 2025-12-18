@@ -21,11 +21,11 @@
 - [x] Implement `game_state` broadcast (syncs started/stopped status).
 
 ## Phase 4: Frontend UI
-- [ ] **Landing Page:** Create "Host Game" vs "Join Game" toggle.
-- [ ] **Lobby:** Display QR Code (using `qrcode.react`) and Room URL.
-- [ ] **Game Board:** Render 5x5 grid based on socket data.
-- [ ] **Interaction:** Click handling to toggle cell state (visual only until verified).
-- [ ] **Win Declaration:** "BINGO" button that emits verification request to server.
+- [x] **Landing Page:** Create "Host Game" vs "Join Game" toggle.
+- [x] **Lobby:** Display QR Code (using `qrcode.react`) and Room URL.
+- [x] **Game Board:** Render 5x5 grid based on socket data.
+- [x] **Interaction:** Click handling to toggle cell state (visual only until verified).
+- [x] **Win Declaration:** "BINGO" button that emits verification request to server.
 
 ## Phase 5: Business Mode & Polish
 - [ ] Create a JSON list of "Business Jargon" (e.g., "Circle back," "Low hanging fruit").
