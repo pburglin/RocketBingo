@@ -114,6 +114,10 @@ class SocketService {
     this.socket?.on('bingo_called', callback);
   }
 
+  onBingoValidation(callback: (data: { playerId: string; playerName: string; markedCells: number[]; isValid: boolean; winningLines: number[][] }) => void): void {
+    this.socket?.on('bingo_validation', callback);
+  }
+
   onError(callback: (data: { message: string }) => void): void {
     this.socket?.on('error', callback);
   }
@@ -141,6 +145,10 @@ class SocketService {
 
   offBingoCalled(callback?: (data: { roomId: string; playerId: string; winningCells: number[] }) => void): void {
     this.socket?.off('bingo_called', callback);
+  }
+
+  offBingoValidation(callback?: (data: { playerId: string; playerName: string; markedCells: number[]; isValid: boolean; winningLines: number[][] }) => void): void {
+    this.socket?.off('bingo_validation', callback);
   }
 
   offError(callback?: (data: { message: string }) => void): void {

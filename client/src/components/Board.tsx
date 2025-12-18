@@ -45,12 +45,7 @@ const Board: React.FC<BoardProps> = ({ board, onCellClick }) => {
           </button>
         ))}
       </div>
-      
-      <div className="mt-6 text-center">
-        <button className="rocket-button bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg">
-          🎉 Call BINGO!
-        </button>
-      </div>
+
     </div>
   );
 };

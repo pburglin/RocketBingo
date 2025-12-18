@@ -10,10 +10,15 @@ interface GameProps {
   onBackToLobby: () => void;
 }
 
-const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
+const Game: React.FC<GameProps> = ({ room, playerName, onBackToLobby }) => {
   const [gameBoard, setGameBoard] = useState<BingoBoard>([]);
   const [markedCells, setMarkedCells] = useState<Set<number>>(new Set());
   const [hasWon, setHasWon] = useState(false);
+  const [bingoValidation, setBingoValidation] = useState<any>(null);
+  const [showValidation, setShowValidation] = useState(false);
+
+  // Track marked cells for all players
+  const [allPlayersMarkedCells, setAllPlayersMarkedCells] = useState<Record<string, Set<number>>>({});
 
 
   // Initialize game board when game starts
@@ -41,10 +46,12 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
 
     socketService.onGameStateUpdate(handleGameStateUpdate);
     socketService.onBingoCalled(handleBingoCalled);
+    socketService.onBingoValidation(handleBingoValidation);
 
     return () => {
       socketService.offGameStateUpdate(handleGameStateUpdate);
       socketService.offBingoCalled(handleBingoCalled);
+      socketService.offBingoValidation(handleBingoValidation);
     };
   }, []);
 
@@ -115,9 +122,32 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
     });
   };
 
-  // Handle BINGO call
+  // Handle BINGO call with validation
   const handleBingoCall = () => {
-    socketService.callBingo({ roomId: room.id });
+    socketService.callBingo({ roomId: room.id, markedCells: Array.from(markedCells) });
+  };
+
+  // Handle bingo validation response
+  const handleBingoValidation = (data: any) => {
+    setBingoValidation(data);
+    setShowValidation(true);
+    
+    // Auto-hide validation after 5 seconds
+    setTimeout(() => {
+      setShowValidation(false);
+      setBingoValidation(null);
+    }, 5000);
+    
+    // If this player won, set hasWon
+    if (data.isValid && data.playerId === socketService.getSocket()?.id) {
+      setHasWon(true);
+    }
+  };
+
+  // Close validation dialog
+  const closeValidation = () => {
+    setShowValidation(false);
+    setBingoValidation(null);
   };
 
   // Update board with marked cells
@@ -162,6 +192,56 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
         onCellClick={handleCellClick}
       />
 
+      {/* Player List */}
+      <div className="glass-card rounded-lg p-6 mt-6">
+        <h3 className="text-xl font-bold text-white mb-4 text-center">
+          👥 Players ({room.players.length})
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {room.players
+            .sort((a: any, b: any) => {
+              // Host first
+              if (a.socketId === room.hostId) return -1;
+              if (b.socketId === room.hostId) return 1;
+              // Then alphabetical
+              return a.name.localeCompare(b.name);
+            })
+            .map((player: any) => {
+              const markedCount = allPlayersMarkedCells[player.socketId]?.size || 0;
+              const isHost = player.socketId === room.hostId;
+              const isCurrentPlayer = player.name === playerName;
+              
+              return (
+                <div 
+                  key={player.id}
+                  className={`bg-white/10 rounded-lg p-3 transition-all ${
+                    isCurrentPlayer ? 'ring-2 ring-orange-400 bg-orange-500/20' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        {player.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <span className="text-white font-medium">
+                          {player.name}
+                          {isHost && <span className="text-orange-400 ml-1">(host)</span>}
+                          {isCurrentPlayer && <span className="text-green-400 ml-1">(you)</span>}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-white font-bold">{markedCount}</div>
+                      <div className="text-purple-200 text-xs">marked</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
       {/* Win Declaration */}
       <div className="text-center mt-6">
         {!hasWon ? (
@@ -201,6 +281,71 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
           </div>
         </div>
       </div>
+      
+      {/* Bingo Validation Dialog */}
+      {showValidation && bingoValidation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeValidation}
+          />
+          
+          {/* Validation Dialog */}
+          <div className={`relative max-w-md w-full mx-4 glass-card rounded-xl p-6 shadow-2xl ${
+            bingoValidation.isValid ? 'border-2 border-green-400' : 'border-2 border-red-400'
+          }`}>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-2xl font-bold ${
+                bingoValidation.isValid ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {bingoValidation.isValid ? '🎉 VALID BINGO!' : '❌ INVALID BINGO'}
+              </h3>
+              <button
+                onClick={closeValidation}
+                className="text-purple-200 hover:text-white transition-colors text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="text-white text-center">
+              <p className="text-lg mb-2">
+                <span className="font-bold">{bingoValidation.playerName}</span> called BINGO!
+              </p>
+              
+              {bingoValidation.isValid ? (
+                <div className="bingo-win rounded-lg p-4 mb-4">
+                  <p className="text-green-100 font-medium">
+                    🎆 Congratulations! Valid winning line detected!
+                  </p>
+                  <p className="text-green-200 text-sm mt-1">
+                    {bingoValidation.winningLines.length} winning line{bingoValidation.winningLines.length !== 1 ? 's' : ''} found
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-4">
+                  <p className="text-red-200 font-medium">
+                    ❌ This is not a valid bingo card.
+                  </p>
+                  <p className="text-red-300 text-sm mt-1">
+                    You need to mark at least 4 cells in a row, column, or diagonal.
+                  </p>
+                </div>
+              )}
+              
+              <button
+                onClick={closeValidation}
+                className="rocket-button bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+              >
+                Continue Playing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -56,6 +56,7 @@ export interface MarkCellData {
 
 export interface CallBingoData {
   roomId: string;
+  markedCells?: number[];
 }
 
 export interface RoomCreatedData {

@@ -4,6 +4,7 @@ import { GameMode, Room } from '../../shared/types';
 import Lobby from './components/Lobby';
 import Game from './components/Game';
 import JoinGame from './components/JoinGame';
+import HostModal from './components/HostModal';
 import socketService from './services/socket';
 
 type AppState = 'landing' | 'host' | 'lobby' | 'game' | 'join';
@@ -15,6 +16,7 @@ const App: React.FC = () => {
   const [playerName, setPlayerName] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [error, setError] = useState('');
+  const [isHostModalOpen, setIsHostModalOpen] = useState(false);
 
   // Connect to socket on component mount
   useEffect(() => {
@@ -43,6 +45,7 @@ const App: React.FC = () => {
     });
     
     socketService.createRoom({ playerName: name, gameMode });
+    setIsHostModalOpen(false);
   };
 
   // Handle room joining
@@ -117,61 +120,64 @@ const App: React.FC = () => {
   // Render landing page
   if (appState === 'landing') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900 gradient-animation">
-        <div className="container mx-auto px-4 py-8">
-          <header className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-white mb-4 float-animation">
-              🚀 Rocket Bingo
-            </h1>
-            <p className="text-xl text-purple-200">
-              Real-time multiplayer bingo with a rocket theme!
-            </p>
-          </header>
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900 gradient-animation">
+          <div className="container mx-auto px-4 py-8">
+            <header className="text-center mb-8">
+              <h1 className="text-5xl font-bold text-white mb-4 float-animation">
+                🚀 Rocket Bingo
+              </h1>
+              <p className="text-xl text-purple-200">
+                Real-time multiplayer bingo with a rocket theme!
+              </p>
+            </header>
 
-          <div className="max-w-md mx-auto glass-card rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-white mb-6 text-center">
-              Choose Your Role
-            </h2>
-            
-            <div className="space-y-4">
-              <button
-                onClick={() => {
-                  const name = prompt('Enter your name to host:') || '';
-                  if (name.trim()) {
-                    handleCreateRoom(name.trim());
-                  }
-                }}
-                className="w-full rocket-button bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-              >
-                🚀 Host Game
-              </button>
+            <div className="max-w-md mx-auto glass-card rounded-lg p-6">
+              <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                Choose Your Role
+              </h2>
               
-              <button
-                onClick={() => setAppState('join')}
-                className="w-full rocket-button bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-              >
-                🎮 Join Game
-              </button>
-            </div>
+              <div className="space-y-4">
+                <button
+                  onClick={() => setIsHostModalOpen(true)}
+                  className="w-full rocket-button bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                >
+                  🚀 Host Game
+                </button>
+                
+                <button
+                  onClick={() => setAppState('join')}
+                  className="w-full rocket-button bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                >
+                  🎮 Join Game
+                </button>
+              </div>
 
-            <div className="mt-6">
-              <label className="block text-white text-sm font-bold mb-2">
-                Game Mode
-              </label>
-              <select
-                value={gameMode}
-                onChange={(e) => setGameMode(e.target.value as GameMode)}
-                className={`w-full p-2 rounded bg-white/20 text-white border-2 ${
-                  gameMode === 'BUSINESS' ? 'business-mode-glow border-blue-400' : 'classic-mode-glow border-orange-400'
-                }`}
-              >
-                <option value="CLASSIC">🎲 Classic Bingo (Numbers 1-75)</option>
-                <option value="BUSINESS">💼 Business Buzzwords (Corporate Jargon)</option>
-              </select>
+              <div className="mt-6">
+                <label className="block text-white text-sm font-bold mb-2">
+                  Game Mode
+                </label>
+                <select
+                  value={gameMode}
+                  onChange={(e) => setGameMode(e.target.value as GameMode)}
+                  className={`w-full p-2 rounded bg-white/20 text-white border-2 ${
+                    gameMode === 'BUSINESS' ? 'business-mode-glow border-blue-400' : 'classic-mode-glow border-orange-400'
+                  }`}
+                >
+                  <option value="CLASSIC">🎲 Classic Bingo (Numbers 1-75)</option>
+                  <option value="BUSINESS">💼 Business Buzzwords (Corporate Jargon)</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+        
+        <HostModal
+          isOpen={isHostModalOpen}
+          onClose={() => setIsHostModalOpen(false)}
+          onSubmit={handleCreateRoom}
+        />
+      </>
     );
   }
 

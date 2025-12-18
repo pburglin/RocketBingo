@@ -1,5 +1,6 @@
 // client/src/components/Lobby.tsx
 import React from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Room } from '../../../shared/types';
 
 interface LobbyProps {
@@ -47,12 +48,16 @@ const Lobby: React.FC<LobbyProps> = ({ room, isHost, onStartGame, onBack }) => {
             Mode: <span className="font-bold">{room.gameMode === 'CLASSIC' ? '🎲 Classic (1-75)' : '💼 Business Jargon'}</span>
           </p>
           
-          {/* QR Code Placeholder */}
+          {/* QR Code */}
           <div className="bg-white p-4 rounded-lg inline-block mb-4">
-            <div className="w-32 h-32 bg-gray-200 flex items-center justify-center text-gray-600 font-mono text-xs">
-              QR CODE<br/>
-              {roomUrl}
-            </div>
+            <QRCodeSVG
+              value={roomUrl}
+              size={128}
+              level="M"
+              includeMargin={true}
+              fgColor="#1f2937"
+              bgColor="#ffffff"
+            />
           </div>
           
           <p className="text-purple-200 text-sm mb-4">

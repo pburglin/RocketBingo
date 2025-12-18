@@ -17,6 +17,9 @@ const io = new Server(server, {
 // In-memory room storage (in production, use Redis or database)
 const rooms = new Map<string, Room>();
 
+// Track marked cells for each player
+const playerMarkedCells = new Map<string, Map<string, Set<number>>>(); // roomId -> (playerId -> Set<cellIndex>)
+
 // Utility function to get or create room
 const getRoom = (roomId: string): Room | undefined => {
   return rooms.get(roomId);
@@ -216,7 +219,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle cell marking (visual only for now)
+  // Handle cell marking with tracking
   socket.on('mark_cell', (data: { roomId: string; cellIndex: number }) => {
     try {
       const { roomId, cellIndex } = data;
@@ -238,6 +241,23 @@ io.on('connection', (socket) => {
         return;
       }
 
+      // Track marked cells for this player
+      if (!playerMarkedCells.has(roomId)) {
+        playerMarkedCells.set(roomId, new Map());
+      }
+      const roomMarkedCells = playerMarkedCells.get(roomId)!;
+      
+      if (!roomMarkedCells.has(socket.id)) {
+        roomMarkedCells.set(socket.id, new Set());
+      }
+      
+      const playerCells = roomMarkedCells.get(socket.id)!;
+      if (playerCells.has(cellIndex)) {
+        playerCells.delete(cellIndex); // Toggle off
+      } else {
+        playerCells.add(cellIndex); // Toggle on
+      }
+
       // Broadcast cell marking to all players in room
       io.to(roomId).emit('game_state_update', { 
         room,
@@ -253,10 +273,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle bingo call
-  socket.on('call_bingo', (data: { roomId: string }) => {
+  // Handle bingo call with validation
+  socket.on('call_bingo', (data: { roomId: string; markedCells?: number[] }) => {
     try {
-      const { roomId } = data;
+      const { roomId, markedCells = [] } = data;
       const room = getRoom(roomId);
 
       if (!room) {
@@ -269,20 +289,79 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // TODO: In a real implementation, we would validate the actual board state
-      // For now, we'll just broadcast the bingo call
-      io.to(roomId).emit('bingo_called', { 
-        roomId, 
-        playerId: socket.id, 
-        winningCells: [] // TODO: calculate actual winning cells
+      // Get player info
+      const player = room.players.find(p => p.socketId === socket.id);
+      if (!player) {
+        socket.emit('error', { message: 'Player not found in room' });
+        return;
+      }
+
+      // Validate bingo (simple validation - need 5 in a row)
+      const validation = validateBingo(markedCells);
+      
+      // Broadcast validation result to all players
+      io.to(roomId).emit('bingo_validation', {
+        playerId: socket.id,
+        playerName: player.name,
+        markedCells,
+        isValid: validation.isValid,
+        winningLines: validation.winningLines
       });
 
-      console.log(`Bingo called by ${socket.id} in room ${roomId}`);
+      console.log(`Bingo called by ${player.name} (${socket.id}) in room ${roomId} - Valid: ${validation.isValid}`);
     } catch (error) {
       console.error('Error calling bingo:', error);
       socket.emit('error', { message: 'Failed to call bingo' });
     }
   });
+
+  // Bingo validation function
+  function validateBingo(markedCells: number[]): { isValid: boolean; winningLines: number[][] } {
+    const markedSet = new Set(markedCells);
+    const winningLines: number[][] = [];
+    
+    // Check rows
+    for (let row = 0; row < 5; row++) {
+      const rowCells = [];
+      for (let col = 0; col < 5; col++) {
+        const cellIndex = row * 5 + col;
+        if (cellIndex === 12) continue; // Skip center free space
+        if (markedSet.has(cellIndex)) {
+          rowCells.push(cellIndex);
+        }
+      }
+      if (rowCells.length >= 4) { // Need 4 out of 5 (center is free)
+        winningLines.push(rowCells);
+      }
+    }
+    
+    // Check columns
+    for (let col = 0; col < 5; col++) {
+      const colCells = [];
+      for (let row = 0; row < 5; row++) {
+        const cellIndex = row * 5 + col;
+        if (cellIndex === 12) continue; // Skip center free space
+        if (markedSet.has(cellIndex)) {
+          colCells.push(cellIndex);
+        }
+      }
+      if (colCells.length >= 4) { // Need 4 out of 5 (center is free)
+        winningLines.push(colCells);
+      }
+    }
+    
+    // Check diagonals
+    const diag1 = [0, 6, 12, 18, 24].filter(i => i !== 12 && markedSet.has(i));
+    const diag2 = [4, 8, 12, 16, 20].filter(i => i !== 12 && markedSet.has(i));
+    
+    if (diag1.length >= 4) winningLines.push(diag1);
+    if (diag2.length >= 4) winningLines.push(diag2);
+    
+    return {
+      isValid: winningLines.length > 0,
+      winningLines
+    };
+  }
 
   // Handle disconnection
   socket.on('disconnect', () => {
