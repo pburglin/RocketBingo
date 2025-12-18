@@ -21,7 +21,7 @@ const rooms = new Map<string, Room>();
 const playerMarkedCells = new Map<string, Map<string, Set<number>>>(); // roomId -> (playerId -> Set<cellIndex>)
 
 // Track generated numbers for built-in number generator
-const generatedNumbers = new Map<string, number[]>(); // roomId -> array of generated numbers
+const generatedNumbers = new Map<string, (number | string)[]>(); // roomId -> array of generated numbers
 
 // Utility function to get or create room
 const getRoom = (roomId: string): Room | undefined => {
@@ -351,7 +351,7 @@ io.on('connection', (socket) => {
       }
 
       // Generate a new number (1-75 for classic, random business terms for business)
-      let newNumber: string;
+      let newNumber: string = '';
       if (room.gameMode === 'CLASSIC') {
         // Generate number 1-75
         const availableNumbers = [];
@@ -367,7 +367,10 @@ io.on('connection', (socket) => {
         }
         
         const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-        newNumber = availableNumbers[randomIndex].toString();
+        const selectedNumber = availableNumbers[randomIndex];
+        if (selectedNumber !== undefined) {
+          newNumber = selectedNumber.toString();
+        }
       } else {
         // Business mode - get random business term
         const businessTerms = [
@@ -381,7 +384,7 @@ io.on('connection', (socket) => {
         ];
         
         const availableTerms = businessTerms.filter(term => 
-          !generatedNumbers.get(roomId)?.includes(businessTerms.indexOf(term))
+          !generatedNumbers.get(roomId)?.includes(term)
         );
         
         if (availableTerms.length === 0) {
@@ -389,7 +392,10 @@ io.on('connection', (socket) => {
           return;
         }
         
-        newNumber = availableTerms[Math.floor(Math.random() * availableTerms.length)];
+        const selectedTerm = availableTerms[Math.floor(Math.random() * availableTerms.length)];
+        if (selectedTerm) {
+          newNumber = selectedTerm;
+        }
       }
 
       // Store generated number
@@ -398,7 +404,10 @@ io.on('connection', (socket) => {
       }
       const roomNumbers = generatedNumbers.get(roomId)!;
       if (room.gameMode === 'CLASSIC') {
-        roomNumbers.push(parseInt(newNumber));
+        const numValue = parseInt(newNumber);
+        if (!isNaN(numValue)) {
+          roomNumbers.push(numValue);
+        }
       } else {
         roomNumbers.push(newNumber);
       }

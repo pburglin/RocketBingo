@@ -12,9 +12,9 @@ const WebGLBackground: React.FC<WebGLBackgroundProps> = ({
   color = '#8b5cf6' 
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene>();
-  const rendererRef = useRef<THREE.WebGLRenderer>();
-  const animationIdRef = useRef<number>();
+  const sceneRef = useRef<THREE.Scene | undefined>(undefined);
+  const rendererRef = useRef<THREE.WebGLRenderer | undefined>(undefined);
+  const animationIdRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -67,8 +67,9 @@ const WebGLBackground: React.FC<WebGLBackgroundProps> = ({
       ];
       
       const geometry = geometries[Math.floor(Math.random() * geometries.length)];
+      const selectedColor = colors[Math.floor(Math.random() * colors.length)] || new THREE.Color('#8b5cf6');
       const material = new THREE.MeshPhongMaterial({
-        color: colors[Math.floor(Math.random() * colors.length)],
+        color: selectedColor,
         transparent: true,
         opacity: 0.1 + Math.random() * 0.3,
         wireframe: Math.random() > 0.6,

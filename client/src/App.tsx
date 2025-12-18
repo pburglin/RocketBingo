@@ -1,6 +1,6 @@
 // client/src/App.tsx
 import React, { useState, useEffect } from 'react';
-import { GameMode, Room } from '../../shared/types';
+import { Room } from '../../shared/types';
 import Lobby from './components/Lobby';
 import Game from './components/Game';
 import JoinGame from './components/JoinGame';
@@ -12,7 +12,7 @@ type AppState = 'landing' | 'host' | 'lobby' | 'game' | 'join';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('landing');
-  const [gameMode, setGameMode] = useState<GameMode>('CLASSIC');
+  // const [gameMode, setGameMode] = useState<GameMode>('CLASSIC'); // Not currently used
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [playerName, setPlayerName] = useState('');
   const [isHost, setIsHost] = useState(false);

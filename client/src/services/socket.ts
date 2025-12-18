@@ -10,11 +10,11 @@ import {
 } from '../../../shared/types';
 
 // Type the createRoom method properly
-interface CreateRoomWithGenerator {
-  playerName: string;
-  gameMode?: 'CLASSIC' | 'BUSINESS';
-  numberGenerator?: 'EXTERNAL' | 'BUILTIN';
-}
+// interface CreateRoomWithGenerator {
+//   playerName: string;
+//   gameMode?: 'CLASSIC' | 'BUSINESS';
+//   numberGenerator?: 'EXTERNAL' | 'BUILTIN';
+// }
 
 class SocketService {
   private socket: Socket | null = null;

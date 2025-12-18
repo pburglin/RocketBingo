@@ -21,8 +21,8 @@ const Game: React.FC<GameProps> = ({ room, playerName, onBackToLobby }) => {
   const [bingoCardToShow, setBingoCardToShow] = useState<any>(null);
   const [showBingoCard, setShowBingoCard] = useState(false);
 
-  // Track marked cells for all players
-  const [allPlayersMarkedCells, setAllPlayersMarkedCells] = useState<Record<string, Set<number>>>({});
+  // Track marked cells for all players (not currently used but kept for future functionality)
+  // const [allPlayersMarkedCells, setAllPlayersMarkedCells] = useState<Record<string, Set<number>>>({});
 
 
   // Initialize game board when game starts
@@ -304,7 +304,7 @@ const Game: React.FC<GameProps> = ({ room, playerName, onBackToLobby }) => {
               return a.name.localeCompare(b.name);
             })
             .map((player: any) => {
-              const markedCount = allPlayersMarkedCells[player.socketId]?.size || 0;
+              const markedCount = 0; // allPlayersMarkedCells[player.socketId]?.size || 0;
               const isHost = player.socketId === room.hostId;
               const isCurrentPlayer = player.name === playerName;
               

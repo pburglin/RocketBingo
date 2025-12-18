@@ -6,6 +6,7 @@ export interface Room {
   players: Player[];
   gameState: 'waiting' | 'started' | 'finished';
   gameMode: 'CLASSIC' | 'BUSINESS';
+  numberGenerator: 'EXTERNAL' | 'BUILTIN';
   createdAt: Date;
 }
 
