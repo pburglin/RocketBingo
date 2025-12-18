@@ -18,10 +18,18 @@ const App: React.FC = () => {
   const [isHost, setIsHost] = useState(false);
   const [error, setError] = useState('');
   const [isHostModalOpen, setIsHostModalOpen] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   // Connect to socket on component mount
   useEffect(() => {
     socketService.connect();
+    
+    // Monitor socket connection status
+    const checkConnection = () => {
+      setSocketConnected(socketService.isSocketConnected());
+    };
+    
+    const interval = setInterval(checkConnection, 1000);
     
     // Set up global error handler
     socketService.onError((data) => {
@@ -30,6 +38,7 @@ const App: React.FC = () => {
     });
 
     return () => {
+      clearInterval(interval);
       socketService.disconnect();
     };
   }, []);
@@ -146,19 +155,44 @@ const App: React.FC = () => {
                 Choose Your Role
               </h2>
               
+              {/* Server Connection Warning */}
+              {!socketConnected && (
+                <div className="bg-orange-500/20 border border-orange-500 rounded-lg p-3 mb-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="text-orange-400">⚠️</div>
+                    <p className="text-orange-200 text-sm">
+                      Backend server not connected. Multiplayer features unavailable.
+                    </p>
+                  </div>
+                  <p className="text-orange-300 text-xs mt-1">
+                    Run locally with: <code className="bg-orange-500/20 px-1 rounded">npm run dev</code>
+                  </p>
+                </div>
+              )}
+              
               <div className="space-y-4">
                 <button
                   onClick={() => setIsHostModalOpen(true)}
-                  className="w-full rocket-button bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                  disabled={!socketConnected}
+                  className={`w-full rocket-button font-bold py-3 px-6 rounded-lg transition-colors ${
+                    socketConnected 
+                      ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                      : 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                  }`}
                 >
-                  🚀 Host Game
+                  🚀 Host Game {!socketConnected && '(Server Required)'}
                 </button>
                 
                 <button
                   onClick={() => setAppState('join')}
-                  className="w-full rocket-button bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                  disabled={!socketConnected}
+                  className={`w-full rocket-button font-bold py-3 px-6 rounded-lg transition-colors ${
+                    socketConnected 
+                      ? 'bg-purple-500 hover:bg-purple-600 text-white' 
+                      : 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                  }`}
                 >
-                  🎮 Join Game
+                  🎮 Join Game {!socketConnected && '(Server Required)'}
                 </button>
               </div>
             </div>
@@ -189,6 +223,23 @@ const App: React.FC = () => {
                 Join an existing game!
               </p>
             </header>
+
+            {/* Server Connection Warning */}
+            {!socketConnected && (
+              <div className="max-w-md mx-auto mb-6">
+                <div className="bg-orange-500/20 border border-orange-500 rounded-lg p-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="text-orange-400">⚠️</div>
+                    <p className="text-orange-200 text-sm">
+                      Backend server not connected. Multiplayer features unavailable.
+                    </p>
+                  </div>
+                  <p className="text-orange-300 text-xs mt-1">
+                    Run locally with: <code className="bg-orange-500/20 px-1 rounded">npm run dev</code>
+                  </p>
+                </div>
+              </div>
+            )}
 
             <JoinGame
               onJoinRoom={handleJoinRoom}

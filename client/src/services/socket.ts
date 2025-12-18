@@ -21,13 +21,28 @@ class SocketService {
   private isConnected = false;
 
   // Connect to the Socket.io server
-  connect(serverUrl: string = 'http://localhost:3001'): void {
+  connect(serverUrl?: string): void {
+    // Default to localhost for development, or try to detect server
+    const url = serverUrl || 
+      (window.location.hostname === 'localhost' ? 'http://localhost:3001' : null);
+    
+    // If no server URL available (e.g., on production), just show warning
+    if (!url) {
+      console.warn('⚠️ No socket server URL configured. This is a frontend-only deployment.');
+      console.log('💡 To enable multiplayer features, deploy the backend server separately.');
+      return;
+    }
+    
+    console.log('🔌 Connecting to socket server:', url);
+    
     if (this.socket?.connected) {
       return;
     }
 
-    this.socket = io(serverUrl, {
-      transports: ['websocket', 'polling']
+    this.socket = io(url, {
+      transports: ['websocket', 'polling'],
+      timeout: 20000, // 20 second timeout
+      forceNew: true
     });
 
     this.socket.on('connect', () => {
@@ -43,6 +58,11 @@ class SocketService {
     this.socket.on('connect_error', (error) => {
       console.error('Connection error:', error);
       this.isConnected = false;
+      
+      // Show user-friendly error for deployment
+      if (error.message.includes('websocket') || error.message.includes('xhr')) {
+        console.warn('⚠️ Socket server not available. This app requires a backend server to function.');
+      }
     });
   }
 
