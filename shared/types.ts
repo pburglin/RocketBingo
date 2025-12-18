@@ -23,6 +23,7 @@ export interface Room {
   hostId: string;
   players: Player[];
   gameState: 'waiting' | 'started' | 'finished';
+  gameMode: 'CLASSIC' | 'BUSINESS';
   createdAt: Date;
 }
 
@@ -36,6 +37,7 @@ export interface Player {
 // Socket event interfaces for client-server communication
 export interface CreateRoomData {
   playerName: string;
+  gameMode?: 'CLASSIC' | 'BUSINESS';
 }
 
 export interface JoinRoomData {

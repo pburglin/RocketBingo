@@ -28,9 +28,9 @@
 - [x] **Win Declaration:** "BINGO" button that emits verification request to server.
 
 ## Phase 5: Business Mode & Polish
-- [ ] Create a JSON list of "Business Jargon" (e.g., "Circle back," "Low hanging fruit").
-- [ ] Add UI selector for Game Mode (Classic vs. Business).
-- [ ] Styling polish using Tailwind (Rocket theme: dark purples, oranges).
+- [x] Create a JSON list of "Business Jargon" (e.g., "Circle back," "Low hanging fruit").
+- [x] Add UI selector for Game Mode (Classic vs. Business).
+- [x] Styling polish using Tailwind (Rocket theme: dark purples, oranges).
 
 ## Phase 6: Autonomous Verification
-- [ ] Write an End-to-End (E2E) test using Playwright that simulates a Host and a Player completing a game loop.
+- [x] Write an End-to-End (E2E) test using Playwright that simulates a Host and a Player completing a game loop.

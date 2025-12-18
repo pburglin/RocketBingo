@@ -37,9 +37,9 @@ io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
   // Handle room creation
-  socket.on('create_room', (data: { playerName: string }) => {
+  socket.on('create_room', (data: { playerName: string; gameMode?: 'CLASSIC' | 'BUSINESS' }) => {
     try {
-      const { playerName } = data;
+      const { playerName, gameMode = 'CLASSIC' } = data;
       
       if (!playerName || typeof playerName !== 'string' || playerName.trim().length === 0) {
         socket.emit('error', { message: 'Player name is required' });
@@ -66,6 +66,7 @@ io.on('connection', (socket) => {
         hostId: socket.id,
         players: [hostPlayer],
         gameState: 'waiting',
+        gameMode: gameMode,
         createdAt: new Date()
       };
 
@@ -199,9 +200,8 @@ io.on('connection', (socket) => {
       room.gameState = 'started';
       saveRoom(room);
 
-      // Generate boards for all players (for now, same board for all)
-      const classicNumbers = Array.from({ length: 75 }, (_, i) => (i + 1).toString());
-      generateBoard(classicNumbers); // Generate board (not stored yet)
+      // Generate boards based on game mode
+      generateBoard(room.gameMode); // Generate board based on game mode
 
       // TODO: In a real implementation, each player would get their own unique board
       // For now, we'll store the board in the room for reference

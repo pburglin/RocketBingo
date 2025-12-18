@@ -1,5 +1,6 @@
 // server/game/generator.ts
-import { BingoBoard } from '../../shared/types';
+import { BingoBoard, GameMode } from '../../shared/types';
+import businessJargon from '../../shared/business-jargon.json';
 
 /**
  * Shuffles an array in place using Fisher-Yates algorithm
@@ -18,7 +19,31 @@ function shuffle<T>(array: T[]): T[] {
   return array;
 }
 
-export const generateBoard = (items: string[]): BingoBoard => {
+// Generate items based on game mode
+export const generateItemsForMode = (gameMode: GameMode): string[] => {
+  if (gameMode === 'CLASSIC') {
+    // Generate numbers 1-75 for classic bingo
+    return Array.from({ length: 75 }, (_, i) => (i + 1).toString());
+  } else if (gameMode === 'BUSINESS') {
+    // Use business jargon phrases
+    const shuffled = shuffle([...businessJargon]);
+    return shuffled.slice(0, 24);
+  }
+  return [];
+};
+
+// Generate board with items (backward compatibility)
+export const generateBoard = (itemsOrMode: string[] | GameMode = 'CLASSIC'): BingoBoard => {
+  let items: string[];
+  
+  if (typeof itemsOrMode === 'string') {
+    // New interface: passed a game mode
+    items = generateItemsForMode(itemsOrMode);
+  } else {
+    // Old interface: passed an array of items
+    items = itemsOrMode;
+  }
+  
   if (items.length < 24) {
     throw new Error("Not enough items to generate a bingo board (need 24 + Free space)");
   }

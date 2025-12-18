@@ -21,4 +21,8 @@ npm run test:run
 echo "--- 4. Verifying Build ---"
 npm run build
 
+# 5. End-to-End Tests (Complete game flow verification)
+echo "--- 5. Running End-to-End Tests ---"
+npm run test:e2e
+
 echo "✅ VERIFICATION SUCCESSFUL. Code is ready."

@@ -23,9 +23,9 @@ const Lobby: React.FC<LobbyProps> = ({ room, isHost, onStartGame, onBack }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white/10 backdrop-blur-md rounded-lg p-6">
+    <div className="max-w-2xl mx-auto glass-card rounded-lg p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">
+        <h2 className="text-2xl font-bold text-white float-animation">
           {isHost ? '🎮 Game Lobby' : '🎯 Waiting Room'}
         </h2>
         <button
@@ -40,8 +40,11 @@ const Lobby: React.FC<LobbyProps> = ({ room, isHost, onStartGame, onBack }) => {
       <div className="bg-white/20 rounded-lg p-4 mb-6">
         <div className="text-center">
           <p className="text-white text-sm mb-2">Room ID</p>
-          <p className="text-3xl font-mono font-bold text-orange-400 mb-4">
+          <p className="text-3xl font-mono font-bold text-orange-400 mb-2">
             {room.id}
+          </p>
+          <p className="text-purple-200 text-sm mb-4">
+            Mode: <span className="font-bold">{room.gameMode === 'CLASSIC' ? '🎲 Classic (1-75)' : '💼 Business Jargon'}</span>
           </p>
           
           {/* QR Code Placeholder */}
@@ -119,10 +122,10 @@ const Lobby: React.FC<LobbyProps> = ({ room, isHost, onStartGame, onBack }) => {
           <button
             onClick={onStartGame}
             disabled={room.players.length === 0}
-            className={`font-bold py-3 px-8 rounded-lg transition-colors ${
+            className={`rocket-button font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 ${
               room.players.length === 0
                 ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
-                : 'bg-green-500 hover:bg-green-600 text-white'
+                : 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white shadow-lg'
             }`}
           >
             🚀 Start Game

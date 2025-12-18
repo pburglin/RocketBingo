@@ -42,7 +42,7 @@ const App: React.FC = () => {
       setAppState('lobby');
     });
     
-    socketService.createRoom({ playerName: name });
+    socketService.createRoom({ playerName: name, gameMode });
   };
 
   // Handle room joining
@@ -117,10 +117,10 @@ const App: React.FC = () => {
   // Render landing page
   if (appState === 'landing') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900 gradient-animation">
         <div className="container mx-auto px-4 py-8">
           <header className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-white mb-4">
+            <h1 className="text-5xl font-bold text-white mb-4 float-animation">
               🚀 Rocket Bingo
             </h1>
             <p className="text-xl text-purple-200">
@@ -128,7 +128,7 @@ const App: React.FC = () => {
             </p>
           </header>
 
-          <div className="max-w-md mx-auto bg-white/10 backdrop-blur-md rounded-lg p-6">
+          <div className="max-w-md mx-auto glass-card rounded-lg p-6">
             <h2 className="text-2xl font-bold text-white mb-6 text-center">
               Choose Your Role
             </h2>
@@ -141,14 +141,14 @@ const App: React.FC = () => {
                     handleCreateRoom(name.trim());
                   }
                 }}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                className="w-full rocket-button bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
               >
                 🚀 Host Game
               </button>
               
               <button
                 onClick={() => setAppState('join')}
-                className="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                className="w-full rocket-button bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
               >
                 🎮 Join Game
               </button>
@@ -161,10 +161,12 @@ const App: React.FC = () => {
               <select
                 value={gameMode}
                 onChange={(e) => setGameMode(e.target.value as GameMode)}
-                className="w-full p-2 rounded bg-white/20 text-white"
+                className={`w-full p-2 rounded bg-white/20 text-white border-2 ${
+                  gameMode === 'BUSINESS' ? 'business-mode-glow border-blue-400' : 'classic-mode-glow border-orange-400'
+                }`}
               >
-                <option value="CLASSIC">Classic (1-75)</option>
-                <option value="BUSINESS">Business Buzzwords</option>
+                <option value="CLASSIC">🎲 Classic Bingo (Numbers 1-75)</option>
+                <option value="BUSINESS">💼 Business Buzzwords (Corporate Jargon)</option>
               </select>
             </div>
           </div>
@@ -247,10 +249,10 @@ const App: React.FC = () => {
 
   // Loading state
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-900 gradient-animation flex items-center justify-center">
       <div className="text-center text-white">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mb-4"></div>
-        <p className="text-xl">Loading...</p>
+        <div className="rocket-spinner mx-auto mb-4"></div>
+        <p className="text-xl rocket-pulse">Loading...</p>
       </div>
     </div>
   );

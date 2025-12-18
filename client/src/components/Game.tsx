@@ -19,12 +19,10 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
   // Initialize game board when game starts
   useEffect(() => {
     if (room.gameState === 'started') {
-      // Generate a board with numbers 1-75 for classic mode
-      const numbers = Array.from({ length: 75 }, (_, i) => (i + 1).toString());
-      const board = generateSimpleBoard(numbers);
+      const board = generateSimpleBoard(room.gameMode);
       setGameBoard(board);
     }
-  }, [room.gameState]);
+  }, [room.gameState, room.gameMode]);
 
   // Handle socket events
   useEffect(() => {
@@ -50,11 +48,28 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
     };
   }, []);
 
-  // Generate a simple bingo board (for now, same as server logic)
-  const generateSimpleBoard = (items: string[]): BingoBoard => {
-    const shuffled = [...items].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, 24);
+  // Generate a simple bingo board based on game mode
+  const generateSimpleBoard = (gameMode: string): BingoBoard => {
+    let items: string[];
     
+    if (gameMode === 'BUSINESS') {
+      // Load business jargon (simplified - in real app would be from shared)
+      const businessPhrases = [
+        "Circle back", "Low hanging fruit", "Move the needle", "Touch base", 
+        "Bandwidth", "Pivot", "Leverage", "Synergy", "Best practice", 
+        "Paradigm shift", "Out of the box", "Think outside the box", 
+        "Deep dive", "Game changer", "Stakeholder", "Value proposition", 
+        "Pain point", "Solutioning", "Alignment", "Buy-in", "Siloed", 
+        "KPI", "OKR", "Deliverable", "Action item", "Follow up"
+      ];
+      items = [...businessPhrases].sort(() => Math.random() - 0.5);
+    } else {
+      // Classic mode: numbers 1-75
+      items = Array.from({ length: 75 }, (_, i) => (i + 1).toString());
+      items = [...items].sort(() => Math.random() - 0.5);
+    }
+    
+    const selected = items.slice(0, 24);
     const board: BingoBoard = [];
     
     for (let i = 0; i < 25; i++) {
@@ -113,9 +128,10 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
 
   if (room.gameState !== 'started') {
     return (
-      <div className="max-w-2xl mx-auto bg-white/10 backdrop-blur-md rounded-lg p-6 text-center">
+      <div className="max-w-2xl mx-auto glass-card rounded-lg p-6 text-center">
         <div className="text-white mb-4">
-          <h2 className="text-2xl font-bold mb-2">🎮 Game Starting...</h2>
+          <div className="rocket-spinner mx-auto mb-4"></div>
+          <h2 className="text-2xl font-bold mb-2 rocket-pulse">🎮 Game Starting...</h2>
           <p className="text-purple-200">Get ready to play!</p>
         </div>
       </div>
@@ -125,10 +141,10 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Game Header */}
-      <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 mb-6">
+      <div className="glass-card rounded-lg p-4 mb-6">
         <div className="flex justify-between items-center">
           <div className="text-white">
-            <h2 className="text-xl font-bold">🚀 Rocket Bingo</h2>
+            <h2 className="text-xl font-bold float-animation">🚀 Rocket Bingo</h2>
             <p className="text-purple-200 text-sm">Room: {room.id}</p>
           </div>
           <button
@@ -152,7 +168,7 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
           <button
             onClick={handleBingoCall}
             disabled={room.gameState !== 'started'}
-            className={`font-bold py-4 px-12 rounded-lg text-xl transition-all transform hover:scale-105 ${
+            className={`rocket-button font-bold py-4 px-12 rounded-lg text-xl transition-all transform hover:scale-105 ${
               room.gameState === 'started'
                 ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg'
                 : 'bg-gray-500 text-gray-300 cursor-not-allowed'
@@ -161,8 +177,8 @@ const Game: React.FC<GameProps> = ({ room, onBackToLobby }) => {
             🎉 Call BINGO!
           </button>
         ) : (
-          <div className="bg-gradient-to-r from-green-500 to-blue-500 rounded-lg p-6">
-            <h3 className="text-2xl font-bold text-white mb-2">🎉 BINGO!</h3>
+          <div className="bingo-win rounded-lg p-6 shadow-2xl">
+            <h3 className="text-2xl font-bold text-white mb-2 sparkle-animation">🎉 BINGO!</h3>
             <p className="text-green-100">Congratulations! You won!</p>
           </div>
         )}

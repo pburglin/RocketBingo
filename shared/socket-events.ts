@@ -5,6 +5,7 @@ export interface Room {
   hostId: string;
   players: Player[];
   gameState: 'waiting' | 'started' | 'finished';
+  gameMode: 'CLASSIC' | 'BUSINESS';
   createdAt: Date;
 }
 
