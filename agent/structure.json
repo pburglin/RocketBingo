@@ -1,0 +1,15 @@
+{
+  "project_root": {
+    "client": "React frontend application",
+    "server": "Node/Express backend application",
+    "shared": "Types and constants shared between client and server",
+    "tests": "Unit and integration tests",
+    "agent": "Scripts and rules for the AI agent"
+  },
+  "key_files": {
+    "server/index.js": "Entry point, Socket.io setup",
+    "server/gameLogic.js": "Bingo board generation and win checking",
+    "client/src/App.jsx": "Main React router/layout",
+    "client/src/components/Board.jsx": "The 5x5 grid component"
+  }
+}
